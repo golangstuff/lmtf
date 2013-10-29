@@ -68,9 +68,16 @@ elif [ "$MODE" = "client" ]; then
 				rlog_printf "$RET\n"
 				rdata_printf "$RES\n"
 			elif [ "$i" = "tcp" ]; then
-				echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
+				RES=$(echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
+				RET_STR=$(echo $RES | tr -t '\n' '/' | sed 's/\/$/\n/')
+				rlog_printf "rount-trip (ms)  min/max/avg/stddev/med = $RET_STR \n"
+				rdata_printf "$RES\n"
 			elif [ "$i" = "udp" ]; then
-				echoping -u -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
+				RES=$(echoping -u -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
+				RES=$(echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
+				RET_STR=$(echo $RES | tr -t '\n' '/' | sed 's/\/$/\n/')
+				rlog_printf "rount-trip (ms)  min/max/avg/stddev/med = $RET_STR \n"
+				rdata_printf "$RES\n"
 			fi
 			sleep 5
 		done
