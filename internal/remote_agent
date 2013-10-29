@@ -9,7 +9,7 @@ shift 3
 ARGUMENTS=$@
 
 if [ -f /bin/rpm ]; then
-	printf "\nAgent TIMEOUT_CMD does not support -k\n"
+	printf "Agent TIMEOUT_CMD does not support -k\n"
 	TIMEOUT_CMD=timeout
 else
 	TIMEOUT_CMD="timeout -k 10"
