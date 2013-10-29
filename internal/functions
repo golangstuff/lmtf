@@ -39,9 +39,9 @@ get_report(){
 	while [ -f stamp/scp${SITE} ];do sleep 1 ;done
 	while [ -f stamp/sshrun${SITE} ];do sleep 1 ;done
 	echo "get_report $SITE"
-	mkdir -p ./reports/${CASE}/${TIME}/
+	mkdir -p ./reports/${CASE}/${TIME}/data
 	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE}:/tmp/${CASE}/report.txt ./reports/${CASE}/${TIME}/${CASE}-${SITE}-${TIME}.txt 
-	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE}:/tmp/${CASE}/report.dat ./reports/${CASE}/${TIME}/${CASE}-${SITE}-${TIME}.dat
+	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE}:/tmp/${CASE}/report.d/* ./reports/${CASE}/${TIME}/${CASE}-${SITE}-${TIME}/data/
 	#ssh-keygen -f "${HOME}/.ssh/known_hosts" -R ${SITE}
 	rm -f $TMPFILE
 	echo "finish_report $SITE"
