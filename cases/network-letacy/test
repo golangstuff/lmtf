@@ -35,14 +35,10 @@ chmod +x $UPERF
 pkill echoping || true
 
 if [ "$MODE" = "server" ]; then
-# No additional argumet when running in server mode
 	pkill echoping || true
 	enable_echo_server
 	getinfo_and_log $REMOTE_HOST
 elif [ "$MODE" = "client" ]; then
-# Required argumets when running in client mode:
-# $2: remote host
-# 
 	. ./vars || echo "Error sourcing ./vars" >> $LOG_FILE
 
 	getinfo_and_log $REMOTE_HOST
