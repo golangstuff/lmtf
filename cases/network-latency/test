@@ -58,10 +58,14 @@ elif [ "$MODE" = "client" ]; then
 			rlog_printf "\nPacket Size: $j\n"
 			if [ "$i" = "icmp" ]; then
 				if [ "$(uname -s)" = "SunOS" ]; then
-					ping -s $REMOTE_HOST $j $NPACKETS 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+					RET=$(ping -s $REMOTE_HOST $j $NPACKETS 2>&1 | grep "min/avg/max")
+					RES=$(echo $RET | awk '{print $5}' | sed 's#/#\'$'\n#g')
 				elif [ "$(uname -s)" = "Linux" ]; then
-					ping -c $NPACKETS -s $j $REMOTE_HOST 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+					RET=$(ping -c $NPACKETS -s $j $REMOTE_HOST 2>&1 | grep "min/avg/max")
+					RES=$(echo $RET | awk '{print $4}' | sed 's#/#\'$'\n#g')
 				fi
+				rlog_printf "$RET\n"
+				rdata_printf "$RES\n"
 			elif [ "$i" = "tcp" ]; then
 				echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
 			elif [ "$i" = "udp" ]; then
