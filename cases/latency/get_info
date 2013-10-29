@@ -134,8 +134,8 @@ enable_echo_server(){
 		fi
                 cp /etc/xinetd.d/echo-stream echo-stream.backup
                 cp /etc/xinetd.d/echo-dgram echo-dgram.backup
-		sed -i 's/disable \t= yes/disable \t=no/' /etc/xinetd.d/echo-stream
-		sed -i 's/disable \t= yes/disable \t=no/' /etc/xinetd.d/echo-dgram
+		sed -i 's/disable.*/disable \t=no/' /etc/xinetd.d/echo-stream
+		sed -i 's/disable.*/disable \t=no/' /etc/xinetd.d/echo-dgram
                 service xinetd restart
                 iptables -F
         fi
