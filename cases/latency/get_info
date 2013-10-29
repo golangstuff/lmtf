@@ -127,9 +127,15 @@ enable_echo_server(){
         if [ "$(uname -s)" = "SunOS" ]; then
                 svcadm enable svc:/network/echo:stream
                 svcadm enable svc:/network/echo:dgram
-        else
-                cp -f /etc/xinetd.d/echo-dgram echo-dgram.backup
-                cp -f echo-dgram /etc/xinetd.d/echo-dgram
+        elif [ -x /bin/rpm ]; then
+		if ! `rpm -q xinetd > /dev/null`; then
+			rlog_printf "xinetd not installed, please install using:\n yum install xinetd\n"
+			exit 1
+		fi
+                cp /etc/xinetd.d/echo-stream echo-stream.backup
+                cp /etc/xinetd.d/echo-dgram echo-dgram.backup
+		sed -i 's/disable \t= yes/disable \t=no/' /etc/xineted.d/echo-stream
+		sed -i 's/disable \t= yes/disable \t=no/' /etc/xineted.d/echo-dgram
                 service xinetd restart
                 iptables -F
         fi
@@ -140,6 +146,7 @@ restore_echo_server(){
                 svcadm disable svc:/network/echo:stream
                 svcadm disable svc:/network/echo:dgram
         else
+                cp -f echo-stream /etc/xinetd.d/echo-stream
                 cp -f echo-dgram /etc/xinetd.d/echo-dgram
                 service xinetd restart
                 service iptables restart
