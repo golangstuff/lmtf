@@ -26,13 +26,13 @@ rlog_printf "TASK_TIME: $TIME\n"
 rlog_printf "JOB_START: `date +%Y%m%dT%H%M%S`\n"
 rlog_printf "================================================\n"
 
-UPERF=./bin/echoping-`uname -s`.`uname -m`
-if ! [ -f $UPERF ]; then
-	rlog_printf "echoping binary "$UPERF" does not exist!\n"
+EXEC_CMD=./bin/echoping-`uname -s`.`uname -m`
+if ! [ -f $EXEC_CMD ]; then
+	rlog_printf "echoping binary "$EXEC_CMD" does not exist!\n"
 	exit 1
 fi
 
-chmod +x $UPERF
+chmod +x $EXEC_CMD
 pkill echoping || true
 mkdir -p $DATA_DIR
 
@@ -68,15 +68,15 @@ elif [ "$MODE" = "client" ]; then
 				rlog_printf "$RET\n"
 				rdata_printf "$RES\n"
 			elif [ "$i" = "tcp" ]; then
-				RES=$(echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
-				if ! [ -z $RES ]; then
+				RES=$($EXEC_CMD -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
+				if ! [ -z "$RES" ]; then
 					RET_STR=$(echo $RES | awk '{printf"%s ",$0}')
 					rlog_printf "rount-trip (ms)  min/max/avg/stddev/med = $RET_STR\n"
 					rdata_printf "$RES\n"
 				fi
 			elif [ "$i" = "udp" ]; then
-				RES=$(echoping -u -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
-				if ! [ -z $RES ]; then
+				RES=$($EXEC_CMD -u -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | awk '{print $3*1000}')
+				if ! [ -z "$RES" ]; then
 					RET_STR=$(echo $RES | awk '{printf"%s ",$0}')
 					rlog_printf "rount-trip (ms)  min/max/avg/stddev/med = $RET_STR\n"
 					rdata_printf "$RES\n"
