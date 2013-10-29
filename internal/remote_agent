@@ -1,6 +1,7 @@
 #!/bin/sh
 
-printf "Agent full arguments: $@ \n"
+FULL_ARGS=$@
+printf "Agent full arguments: $FULL_ARGS\n"
 export TIME=$1
 export SITE=$2
 export TIMEOUT=$3
