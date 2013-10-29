@@ -2,9 +2,10 @@
 set -e
 
 LOG_FILE=./report.txt
-DATA_FILE=./report.dat
-FULL_ARGS=$@
+DATA_DIR=./report.d
+DATA_FILE=$DATA_DIR/dummy
 
+FULL_ARGS=$@
 . ./get_info || echo "Error sourcing ./get_info" >> $LOG_FILE
 
 if [ -z $1 ]; then
@@ -52,10 +53,15 @@ elif [ "$MODE" = "client" ]; then
 	for i in $PROTO_LIST; do
 		rlog_printf "================================\n"
 		rlog_printf "Protocol: $i\n"
+		DATA_FILE=$DATA_DIR/$i.dat
 		for j in $PACKET_LIST; do
 			rlog_printf "\nPacket Size: $j\n"
 			if [ "$i" = "icmp" ]; then
-				ping -s $REMOTE_HOST $j $NPACKETS 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+				if [ "$(uname -s)" = "SunOS" ]; then
+					ping -s $REMOTE_HOST $j $NPACKETS 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+				elif [ "$(uname -s)" = "Linux" ]; then
+					ping -c $NPACKETS -s $j $REMOTE_HOST 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+				fi
 			elif [ "$i" = "tcp" ]; then
 				echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
 			elif [ "$i" = "udp" ]; then
