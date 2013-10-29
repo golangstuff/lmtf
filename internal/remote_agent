@@ -17,10 +17,23 @@ fi
 
 printf "Agent ($SITE) passing arguments: $ARGUMENT\n"
 
-run_test(){
+run_test()
+{
 	rm -rf ./report.txt
 	chmod +x ./test
 	$TIMEOUT_CMD $TIMEOUT ./test $ARGUMENTS
 }
 
+clean_test()
+{
+	find . | grep -v "\.$" | grep -v "report\." | xargs rm -rf
+}
+
+clean_target()
+{
+	rm -rf `pwd`
+}
+
 run_test
+clean_test
+#clean_target
