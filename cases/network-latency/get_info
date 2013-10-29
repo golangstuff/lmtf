@@ -3,7 +3,7 @@ rlog_printf ()
 	printf "$@" 2>&1 | tee -a $LOG_FILE
 }
 
-rdate_printf()
+rdata_printf()
 {
 	printf "$@" 2>&1 | tee -a $DATA_FILE
 }
