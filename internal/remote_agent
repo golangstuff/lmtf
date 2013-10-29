@@ -1,17 +1,25 @@
 #!/bin/sh
 
-printf "Agent full arguments: $@ \n\n"
+printf "Agent full arguments: $@ \n"
 export TIME=$1
 export SITE=$2
 export TIMEOUT=$3
 shift 3
 ARGUMENTS=$@
+
+if [ -f /bin/rpm ]; then
+	printf "\nAgent TIMEOUT_CMD does not support -k\n"
+	TIMEOUT_CMD=timeout
+else
+	TIMEOUT_CMD="timeout -k 10"
+fi
+
 printf "Agent ($SITE) passing arguments: $ARGUMENT\n"
 
 run_test(){
 	rm -rf ./report.txt
 	chmod +x ./test
-	timeout -k 10 $TIMEOUT ./test $ARGUMENTS
+	$TIMEOUT_CMD $TIMEOUT ./test $ARGUMENTS
 }
 
 run_test
