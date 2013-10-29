@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<profile name="perf-iperf">
+  <group nthreads="$nthreads">
+        <transaction iterations="1">
+            <flowop type="connect" options="remotehost=$remotehost protocol=$protocol
+	    wndsz=$wndsz  tcp_nodelay"/>
+        </transaction>
+        <transaction duration="$duration">
+            <flowop type="write" options="count=$write_count size=$packet_size"/>
+        </transaction>
+        <transaction iterations="1">
+            <flowop type="disconnect" />
+        </transaction>
+  </group>
+</profile>

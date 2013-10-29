@@ -1,0 +1,17 @@
+#!/bin/sh
+
+printf "Agent full arguments: $@\n"
+export TIME=$1
+export SITE=$2
+export TIMEOUT=$3
+shift 3
+ARGUMENTS=$@
+printf "Agent ($SITE) passing arguments: $ARGUMENT\n"
+
+run_test(){
+	rm -rf ./report.txt
+	chmod +x ./test
+	timeout -k 10 $TIMEOUT ./test $ARGUMENTS
+}
+
+run_test

@@ -1,0 +1,80 @@
+#!/bin/sh
+set -e
+
+LOG_FILE=./report.txt
+DATA_FILE=./report.dat
+FULL_ARGS=$@
+
+. ./get_info || echo "Error sourcing ./get_info" >> $LOG_FILE
+
+if [ -z $1 ]; then
+	rlog_printf "No argument passed!\n"
+	exit 1
+elif [ -z "$2" ]; then
+	rlog_printf "No remote host given!\n" 
+	exit 1
+fi
+
+MODE=$1
+REMOTE_HOST=$2
+shift 2
+
+rlog_printf "MODE: $MODE\n"
+rlog_printf "REMOTE_HOST: $REMOTE_HOST\n"
+rlog_printf "TASK_TIME: $TIME\n"
+rlog_printf "JOB_START: `date +%Y%m%dT%H%M%S`\n"
+rlog_printf "================================================\n"
+
+UPERF=./bin/echoping-`uname -s`.`uname -m`
+if ! [ -f $UPERF ]; then
+	rlog_printf "echoping binary "$UPERF" does not exist!\n"
+	exit 1
+fi
+
+chmod +x $UPERF
+pkill echoping || true
+
+if [ "$MODE" = "server" ]; then
+# No additional argumet when running in server mode
+	pkill echoping || true
+	enable_echo_server
+	getinfo_and_log $REMOTE_HOST
+elif [ "$MODE" = "client" ]; then
+# Required argumets when running in client mode:
+# $2: remote host
+# 
+	. ./vars || echo "Error sourcing ./vars" >> $LOG_FILE
+
+	getinfo_and_log $REMOTE_HOST
+	rlog_printf "\n"
+	rlog_printf "================================================\n"
+	rlog_printf "Test results:\n"
+
+	# Wait for server side preparation
+	sleep 1
+
+	for i in $PROTO_LIST; do
+		rlog_printf "================================\n"
+		rlog_printf "Protocol: $i\n"
+		for j in $PACKET_LIST; do
+			rlog_printf "\nPacket Size: $j\n"
+			if [ "$i" = "icmp" ]; then
+				ping -s $REMOTE_HOST $j $NPACKETS 2>&1 | egrep "(Statistics|transmitted|round-trip)" | tee -a $LOG_FILE
+			elif [ "$i" = "tcp" ]; then
+				echoping -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
+			elif [ "$i" = "udp" ]; then
+				echoping -u -s $j -n $NPACKETS $REMOTE_HOST  2>&1 | egrep "(Min|Max|Ave|Standard|Median)" | tee -a $LOG_FILE
+			fi
+			sleep 5
+		done
+	done
+
+	pkill echoping || true 
+else
+	rlog_printf "Unknown mode: $MODE\n"
+fi
+
+rlog_printf "================================================\n"
+rlog_printf "JOB_END: `date +%Y%m%dT%H%M%S`\n"
+
+exit 0

@@ -1,0 +1,85 @@
+#!/bin/sh
+set -e
+
+LOG_FILE=./report.txt
+FULL_ARGS=$@
+
+. ./get_info || echo "Error sourcing ./get_info" >> $LOG_FILE
+
+if [ -z $1 ]; then
+	rlog_printf "No argument passed!\n"
+	exit 1
+elif [ -z "$2" ]; then
+	rlog_printf "No remote host given!\n" 
+	exit 1
+fi
+
+MODE=$1
+REMOTE_HOST=$2
+shift 2
+
+rlog_printf "MODE: $MODE\n"
+rlog_printf "REMOTE_HOST: $REMOTE_HOST\n"
+rlog_printf "TASK_TIME: $TIME\n"
+rlog_printf "JOB_START: `date +%Y%m%dT%H%M%S`\n"
+rlog_printf "================================================\n"
+
+UPERF=./bin/uperf-`uname -s`.`uname -m`
+if ! [ -f $UPERF ]; then
+	rlog_printf "uperf binary "$UPERF" does not exist!\n"
+	exit 1
+fi
+
+chmod +x $UPERF
+pkill uperf || true
+
+if [ "$MODE" = "server" ]; then
+# No additional argumet when running in server mode
+	pkill uperf || true
+	$UPERF -s &
+	UPERF_PID=$!
+	getinfo_and_log $REMOTE_HOST
+elif [ "$MODE" = "client" ]; then
+# Required argumets when running in client mode:
+# $2: remote host
+# 
+	. ./vars || echo "Error sourcing ./vars" >> $LOG_FILE
+
+	getinfo_and_log $REMOTE_HOST
+	rlog_printf "\n"
+	rlog_printf "================================================\n"
+	rlog_printf "Test results:\n"
+
+	export remotehost=$REMOTE_HOST
+	UPERF_PROFILE=./workloads/$PROFILE
+	# Wait for server side preparation
+	sleep 10
+
+	protocol=$PROTOCOL
+	wndsz=$WINDOW_SIZE
+	duration=$DURATION
+	write_count=$WRITE_COUNT
+	export protocol wndsz duration write_count
+
+	for i in $PACKET_LIST; do
+		rlog_printf "Packet Size: $i\n"
+		for j in $THREAD_LIST; do
+			export packet_size=$i
+			export nthreads=$j
+			pkill uperf || true
+			rlog_printf "\tConnections: $j\tThroughput: "
+			RES=$($UPERF -t -m $UPERF_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
+			rlog_printf "$RES\n"
+			sleep 5
+		done
+	done
+
+	pkill uperf || true 
+else
+	rlog_printf "Unknown mode: $MODE\n"
+fi
+
+rlog_printf "================================================\n"
+rlog_printf "JOB_END: `date +%Y%m%dT%H%M%S`\n"
+
+exit 0

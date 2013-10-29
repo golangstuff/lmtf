@@ -1,0 +1,58 @@
+scp_case(){
+	SITE=$1
+	LOGINNAME=$2
+	PASSWORD=$3
+	TMPFILE=./stamp/scp${SITE}
+	touch $TMPFILE
+	echo "scp_case $SITE"
+	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no stamp/${CASE}.tar internal/remote_agent ${LOGINNAME}@${SITE}:/tmp
+	#ssh-keygen -f "${HOME}/.ssh/known_hosts" -R ${SITE}
+	rm $TMPFILE
+	echo "finish_case $SITE"
+}
+
+run_test(){
+	SITE=$1
+	LOGINNAME=$2
+	PASSWORD=$3
+	shift 3
+	ARGUMENTS=$@
+	TMPFILE=./stamp/sshrun${SITE}
+	touch $TMPFILE
+	while [ -f stamp/scp${SITE} ];do sleep 1 ;done
+	echo "run_test $SITE"
+	sshpass -p${PASSWORD} ssh -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE} \
+		"cd /tmp; rm -rf ${CASE}; tar xf ${CASE}.tar; cd ${CASE}; chmod +x ../remote_agent; ../remote_agent $TIME $SITE $TIMEOUT $ARGUMENTS" 
+	#ssh-keygen -f "${HOME}/.ssh/known_hosts" -R ${SITE}
+	# don't rush, just wait ssh a bit
+	sleep 5
+	rm -f $TMPFILE
+	echo "finish_test $SITE"
+}
+
+get_report(){
+	SITE=$1
+	LOGINNAME=$2
+	PASSWORD=$3
+	TMPFILE=./stamp/getreport${SITE}
+	touch $TMPFILE
+	while [ -f stamp/scp${SITE} ];do sleep 1 ;done
+	while [ -f stamp/sshrun${SITE} ];do sleep 1 ;done
+	echo "get_report $SITE"
+	mkdir -p ./reports/${CASE}/${TIME}/
+	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE}:/tmp/${CASE}/report.txt ./reports/${CASE}/${TIME}/${CASE}-${SITE}-${TIME}.txt 
+	sshpass -p${PASSWORD} scp -oStrictHostKeyChecking=no -oGSSAPIAuthentication=no ${LOGINNAME}@${SITE}:/tmp/${CASE}/report.dat ./reports/${CASE}/${TIME}/${CASE}-${SITE}-${TIME}.dat
+	#ssh-keygen -f "${HOME}/.ssh/known_hosts" -R ${SITE}
+	rm -f $TMPFILE
+	echo "finish_report $SITE"
+}
+
+remove_tar (){
+	TMPFILE=./stamp/removetar
+	touch $TMPFILE
+	while `ls stamp/scp* 1>/dev/null 2>/dev/null`; do sleep 1 ;done
+	echo "remove_tar"
+	rm -f stamp/${CASE}.tar
+	rm -f $TMPFILE
+	echo "finish_tar $SITE"
+}

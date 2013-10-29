@@ -1,0 +1,60 @@
+#!/bin/sh
+
+TIME=`date +%Y%m%dT%H%M%S`
+LOG=process.log
+SITE_CONF=cases/$1/site.conf
+
+if ! `which sshpass 2>&1 1>/dev/null`; then
+	printf "sshpass is required but not installed."
+	exit 1
+fi
+
+if [ -z $1 ]; then
+	printf "No test case name given!\n"
+	exit 1
+elif ! [ -f cases/$1/test ]; then
+	printf "Main executable $1/test does not exist!\n"
+	exit 1
+elif ! [ -r $SITE_CONF ]; then
+	printf "$SITE_CONF does not exist or can not be read!\n"
+	exit 1
+fi
+
+CASE=$1
+
+if [ -z $2 ]; then
+	TIMEOUT=900
+else
+	TIMEOUT=$2
+fi
+
+rm -rf stamp $LOG
+mkdir -p reports
+mkdir -p stamp
+
+. ./internal/functions || exit 255
+
+tar cf ./stamp/${CASE}.tar -C cases $CASE
+
+cat $SITE_CONF | while IFS= read -r line; do
+	scp_case $line 1>>$LOG 2>&1 &
+	sleep 1 && run_test $line 1>>$LOG 2>&1 &
+	sleep 2 && get_report $line 1>>$LOG 2>&1 &
+done
+
+#remove_tar 1>>$LOG 2>&1
+
+# if there are still children processes, waiting
+# allow 10s more than on agent
+TIME_OUT=`echo $TIMEOUT+10 | bc`
+for i in $(seq 1 $TIME_OUT) ;do
+	if ! [ -z "$(ls stamp 2>/dev/null)" ];then
+		sleep 1
+	else 
+		rm -rf stamp
+		exit 0
+	fi
+done
+
+rm -rf stamp
+kill -TERM -$$

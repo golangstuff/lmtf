@@ -1,0 +1,147 @@
+rlog_printf ()
+{
+	printf "$@" 2>&1 | tee -a $LOG_FILE
+}
+
+rdate_printf()
+{
+	printf "$@" 2>&1 | tee -a $DATA_FILE
+}
+
+get_os_info ()
+{
+        if [ "$(uname -s)" = "Linux" ]; then
+		OS_TYPE=Linux
+		OS_UNAME=`uname -a`
+		OS_RELEASE=`head -1 /etc/issue.net | sed 's/\\.*//;s/ (.*//'`
+		OS_VERSION=`head -1 /etc/issue.net | sed 's/\\.*//;s/ (.*//' | awk '{print $NF;}'`
+        elif [ "$(uname -s)" = "SunOS" ]; then
+		OS_TYPE=SunOS
+		OS_UNAME=`uname -a`
+		OS_RELEASE=`head -1 /etc/release | sed 's/^ *//'`
+		OS_VERSION=`head -1 /etc/release | sed 's/^ *//' | awk '{print $3;}'`
+	else
+		OS_TYPE=unknown
+		OS_UNAME=`uname -a`
+		OS_RELEASE=unknown
+		OS_VERSION=unknown
+	fi
+}
+
+# Takes one arg, the another server's IP address
+get_net_info ()
+{
+        if [ "$(uname -s)" = "Linux" ]; then
+		NET_DEV=`ip route get $1 | head -1 | awk '{for(i=1;i<=NF;i++) if($i~/dev/) print $(i+1)}'`
+		NET_SPEED=`ethtool $NET_DEV | grep Speed | awk '{print $NF}' | sed 's/Mb\/s//' `
+		NET_DUPLEX=`ethtool $NET_DEV | grep Duplex | awk '{print $NF}'`
+		NET_MEDIA=`ethtool $NET_DEV | grep Port | sed 's/^.*Port: //'`
+        elif [ "$(uname -s)" = "SunOS" ]; then
+		NET_DEV=`route get $1 | grep interface | awk '{print $NF}'`
+		NET_SPEED=`dladm show-phys -o SPEED $NET_DEV | tail -1 `
+		NET_DUPLEX=`dladm show-phys -o DUPLEX $NET_DEV | tail -1`
+		NET_MEDIA=`dladm show-phys -o MEDIA $NET_DEV | tail -1`
+	else
+		NET_DEV=unknown
+		NET_SPEED=unknown
+		NET_DUPLEX=unknown
+		NET_MEDIA=unknown
+	fi
+}
+
+get_cpu_info ()
+{
+        if [ "$(uname -s)" = "Linux" ]; then
+		CPU_VENDOR=`lscpu | grep "Vendor ID" | awk '{print $NF}'`
+		CPU_MHZ=`lscpu | grep "^CPU MHz" | awk '{print $NF}'`
+		CPU_LOGIC_CPU=`lscpu | grep "^CPU(s)" | awk '{print $NF}'`
+		CPU_SOCKET=`lscpu | grep "^Socket(s)" | awk '{print $NF}'`
+		CPU_SOCKET_CORE=`lscpu | grep "^Core(s) per socket" | awk '{print $NF}'`
+        elif [ "$(uname -s)" = "SunOS" ]; then
+		CPU_VENDOR=unknown
+		CPU_MHZ=`psrinfo -v | grep MHz | head -1 | sed 's/.*at //;s/ MHz,//'`
+		CPU_LOGIC_CPU=`psrinfo | wc -l | awk '{print $NF}'`
+		#CPU_SOCKET=`prtdiag | grep -c 'CPU socket'`
+		CPU_SOCKET=unknown
+		CPU_SOCKET_CORE=unknown
+	else
+		CPU_VENDOR=unknown
+		CPU_MHZ=unknown
+		CPU_LOGIC_CPU=unknown
+		CPU_SOCKET=unknown
+		CPU_SOCKET_CORE=unknown
+	fi
+}
+
+# TODO: Add SWAP support
+get_mem_info ()
+{
+        if [ "$(uname -s)" = "Linux" ]; then
+		MEM_INSTALLED=`sum=0; for i in $(dmidecode --type 17 | grep Size | grep -v No | awk '{print $2}'); do sum=$(echo $sum+$i | bc); done; echo $sum`
+		MEM_SPEED=`dmidecode --type 17 | grep Speed | head -1 | sed 's/\tSpeed: //' | awk '{print $1}'`
+		MEM_SWAP=unknown
+        elif [ "$(uname -s)" = "SunOS" ]; then
+		MEM_INSTALLED=`prtconf | grep Mem | awk '{print $3}'`
+		MEM_SPEED=unknown
+		MEM_SWAP=unknown
+	else
+		MEM_INSTALLED=unknown
+		MEM_SPEED=unknown
+		MEM_SWAP=unknown
+	fi
+}
+
+getinfo_and_log ()
+{
+	get_os_info
+	get_net_info $1
+	get_cpu_info
+	get_mem_info
+
+	rlog_printf "OS Information:\n"
+	rlog_printf "\tType: $OS_TYPE\n"
+	rlog_printf "\tFull Name: $OS_UNAME\n"
+	rlog_printf "\tRelease: $OS_RELEASE\n"
+	rlog_printf "\tVersion: $OS_VERSION\n"
+	rlog_printf "\n"
+	rlog_printf "Network Information:\n"
+	rlog_printf "\tDevice: $NET_DEV\n"
+	rlog_printf "\tSpeed: $NET_SPEED Mbps\n"
+	rlog_printf "\tDuplex: $NET_DUPLEX\n"
+	rlog_printf "\tMedia: $NET_MEDIA\n"
+	rlog_printf "\n"
+	rlog_printf "CPU Information:\n"
+	rlog_printf "\tVendor ID: $CPU_VENDOR\n"
+	rlog_printf "\tLogical CPU: $CPU_LOGIC_CPU\n"
+	rlog_printf "\tCPU MHz: $CPU_MHZ\n"
+	rlog_printf "\tSocket(s): $CPU_SOCKET\n"
+	rlog_printf "\tCore(s) per socket: $CPU_SOCKET_CORE\n"
+	rlog_printf "\n"
+	rlog_printf "Memory Information:\n"
+	rlog_printf "\tInstalled: $MEM_INSTALLED MB\n"
+	rlog_printf "\tSpeed: $MEM_SPEED MHz\n"
+	#rlog_printf "\tSwap: $MEM_SWAP MB\n"
+}
+
+enable_echo_server(){
+        if [ "$(uname -s)" = "SunOS" ]; then
+                svcadm enable svc:/network/echo:stream
+                svcadm enable svc:/network/echo:dgram
+        else
+                cp -f /etc/xinetd.d/echo-dgram echo-dgram.backup
+                cp -f echo-dgram /etc/xinetd.d/echo-dgram
+                service xinetd restart
+                iptables -F
+        fi
+}
+
+restore_echo_server(){
+        if [ "$(uname -s)" = "SunOS" ]; then
+                svcadm disable svc:/network/echo:stream
+                svcadm disable svc:/network/echo:dgram
+        else
+                cp -f echo-dgram /etc/xinetd.d/echo-dgram
+                service xinetd restart
+                service iptables restart
+        fi
+}
