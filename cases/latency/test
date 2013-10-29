@@ -34,6 +34,7 @@ fi
 
 chmod +x $UPERF
 pkill echoping || true
+mkdir -p $DATA_DIR
 
 if [ "$MODE" = "server" ]; then
 	pkill echoping || true
@@ -53,8 +54,8 @@ elif [ "$MODE" = "client" ]; then
 	for i in $PROTO_LIST; do
 		rlog_printf "================================\n"
 		rlog_printf "Protocol: $i\n"
-		DATA_FILE=$DATA_DIR/$i.dat
 		for j in $PACKET_LIST; do
+			DATA_FILE=$DATA_DIR/$i-$j.dat
 			rlog_printf "\nPacket Size: $j\n"
 			if [ "$i" = "icmp" ]; then
 				if [ "$(uname -s)" = "SunOS" ]; then
