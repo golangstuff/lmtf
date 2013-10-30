@@ -24,16 +24,17 @@ run_test()
 	$TIMEOUT_CMD $TIMEOUT ./test $ARGUMENTS
 }
 
-clean_test()
-{
-	find . | grep -v "\.$" | grep -v "report\." | xargs rm -rf
-}
-
-clean_target()
+clean_data()
 {
 	rm -rf `pwd`
 }
 
+clean_test()
+{
+	find . | grep -v "\.$" | grep -v "report\." | xargs rm -rf
+	rm -rf `pwd`.tar /tmp/remote_agent
+}
+
 run_test
+#clean_data
 clean_test
-#clean_target
