@@ -76,7 +76,7 @@ elif [ "$MODE" = "client" ]; then
 			if ! [ -z "$RES" ]; then
 				DATA_FILE=$DATA_DIR/$i-$j.dat
 				rdata_printf "$RES\n"
-			if
+			fi
 			sleep 5
 		done
 	done
