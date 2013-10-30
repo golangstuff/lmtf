@@ -1,0 +1,63 @@
+#!/bin/sh
+
+TASKS="bare ovm vmware"
+
+for i in $TASKS; do
+	if ! [ -d $i ]; then
+		printf "$i does not exist!\n"
+		exit 1;
+	elif ! [ -f $i/*.dat ]; then
+		printf "No data file exist for $i!\n"
+		exit 1;
+	fi
+done
+
+for i in $TASKS; do
+	DFILE1=$i.avg
+	rm -f $DFILE1.*
+	count=0
+	for j in $i/tcp-*.dat; do
+		count=$(echo "$count+1" | bc)
+		printf "$count " >> $DFILE1
+		sed -n '3p' $j >> $DFILE1.$i
+	done
+	#DFILE2=$i.mdev
+	#rm -f $DFILE2
+	#count=0
+	#for j in tcp-*.dat; do
+	#	count=$(echo "$count+1" | bc)
+	#	printf "$count " >> $DFILE2.$i
+	#	sed -n '4p' $j >> $DFILE2.$i
+	#done
+done
+
+TIME=`date +%Y%m%dT%H%M%S`
+TITLE1=bare
+TITLE2=ovm
+TITLE3=vmware
+OUTPUT=latency-ping_average_$TIME.png
+
+gnuplot << EOF
+
+set title "network-perf - TCP echo latency"
+set xlabel "packet size (byte)"
+set ylabel "rtt (ms)"
+#set y2label "dev"
+#set y2tics
+#set ytics nomirror
+
+set key tmargin
+set tics nomirror
+#set border 3
+set style data linespoints
+set grid
+#set terminal png
+set terminal pngcairo notransparent font "Helvetica, 12" 
+
+set xtics("64" 1, "256" 2, "512" 3, "1024" 4, "2048" 5, "4096" 6, "8192" 7)
+set output "$OUTPUT"
+
+#plot "$DFILE1" t "$TITLE1" pt 13
+plot "$DFILE1.bare" t "$TITLE1" pt 13, "$DFILE1.ovm" t "$TITLE2" pt 7, "$DFILE1.vmware" t "$TITLE3" pt 2
+
+EOF
