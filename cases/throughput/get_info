@@ -3,6 +3,11 @@ rlog_printf ()
 	printf "$@" 2>&1 | tee -a $LOG_FILE
 }
 
+rdata_printf()
+{
+        printf "$@" 2>&1 | tee -a $DATA_FILE
+}
+
 get_os_info ()
 {
         if [ "$(uname -s)" = "Linux" ]; then
