@@ -65,6 +65,7 @@ elif [ "$MODE" = "client" ]; then
 	export protocol wndsz duration write_count
 
 	for i in $PACKET_LIST; do
+		DATA_FILE=$DATA_DIR/$protocol-$i.dat
 		rlog_printf "Packet Size: $i\n"
 		for j in $THREAD_LIST; do
 			export packet_size=$i
@@ -72,11 +73,8 @@ elif [ "$MODE" = "client" ]; then
 			pkill uperf || true
 			RET=$($EXEC_CMD -t -m $EXEC_CMD_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
 			rlog_printf "\tConnections: $j\tThroughput: $RET\n"
-			RES=$(echo $RES | tr -d [a-zA-Z/])
-			if ! [ -z "$RES" ]; then
-				DATA_FILE=$DATA_DIR/$i-$j.dat
-				rdata_printf "$RES\n"
-			fi
+			RES=$(echo $RET | tr -d [a-zA-Z/])
+			rdata_printf "$RES\n"
 			sleep 5
 		done
 	done
