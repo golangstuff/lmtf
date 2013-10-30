@@ -2,8 +2,10 @@
 set -e
 
 LOG_FILE=./report.txt
-FULL_ARGS=$@
+DATA_DIR=./report.d
+DATA_FILE=$DATA_DIR/dummy
 
+FULL_ARGS=$@
 . ./get_info || echo "Error sourcing ./get_info" >> $LOG_FILE
 
 if [ -z $1 ]; then
@@ -24,20 +26,21 @@ rlog_printf "TASK_TIME: $TIME\n"
 rlog_printf "JOB_START: `date +%Y%m%dT%H%M%S`\n"
 rlog_printf "================================================\n"
 
-UPERF=./bin/uperf-`uname -s`.`uname -m`
-if ! [ -f $UPERF ]; then
-	rlog_printf "uperf binary "$UPERF" does not exist!\n"
+EXEC_CMD=./bin/uperf-`uname -s`.`uname -m`
+if ! [ -f $EXEC_CMD ]; then
+	rlog_printf "uperf binary "$EXEC_CMD" does not exist!\n"
 	exit 1
 fi
 
-chmod +x $UPERF
+chmod +x $EXEC_CMD
 pkill uperf || true
+mkdir -p $DATA_DIR
 
 if [ "$MODE" = "server" ]; then
 # No additional argumet when running in server mode
 	pkill uperf || true
-	$UPERF -s &
-	UPERF_PID=$!
+	$EXEC_CMD -s &
+	EXEC_CMD_PID=$!
 	getinfo_and_log $REMOTE_HOST
 elif [ "$MODE" = "client" ]; then
 # Required argumets when running in client mode:
@@ -51,7 +54,7 @@ elif [ "$MODE" = "client" ]; then
 	rlog_printf "Test results:\n"
 
 	export remotehost=$REMOTE_HOST
-	UPERF_PROFILE=./workloads/$PROFILE
+	EXEC_CMD_PROFILE=./workloads/$PROFILE
 	# Wait for server side preparation
 	sleep 10
 
@@ -67,9 +70,10 @@ elif [ "$MODE" = "client" ]; then
 			export packet_size=$i
 			export nthreads=$j
 			pkill uperf || true
-			rlog_printf "\tConnections: $j\tThroughput: "
-			RES=$($UPERF -t -m $UPERF_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
-			rlog_printf "$RES\n"
+			RES=$($EXEC_CMD -t -m $EXEC_CMD_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
+			rlog_printf "\tConnections: $j\tThroughput: $RES\n"
+			DATA_FILE=$DATA_DIR/$i-$j.dat
+			rdata_printf "$RES\n"
 			sleep 5
 		done
 	done
