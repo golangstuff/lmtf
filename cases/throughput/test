@@ -70,10 +70,13 @@ elif [ "$MODE" = "client" ]; then
 			export packet_size=$i
 			export nthreads=$j
 			pkill uperf || true
-			RES=$($EXEC_CMD -t -m $EXEC_CMD_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
-			rlog_printf "\tConnections: $j\tThroughput: $RES\n"
-			DATA_FILE=$DATA_DIR/$i-$j.dat
-			rdata_printf "$RES\n"
+			RET=$($EXEC_CMD -t -m $EXEC_CMD_PROFILE 2>&1 | grep Total | awk '{ print $6 }')
+			rlog_printf "\tConnections: $j\tThroughput: $RET\n"
+			RES=$(echo $RES | tr -d [a-zA-Z/])
+			if ! [ -z "$RES" ]; then
+				DATA_FILE=$DATA_DIR/$i-$j.dat
+				rdata_printf "$RES\n"
+			if
 			sleep 5
 		done
 	done
