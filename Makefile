@@ -5,4 +5,4 @@ clean:
 	rm -rf stamp process.log
 
 distclean: clean
-	rm -rf reports
+	rm -rf reports graph
