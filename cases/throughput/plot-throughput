@@ -1,0 +1,65 @@
+#!/bin/sh
+
+if [ -z $1 ]; then
+	printf "No release name given!\n"
+	exit 1
+elif [ -z $2 ]; then
+	printf "No protocol version given!\n"
+	exit 1
+else
+	RELEASE=$1
+	PKTSZ=$2
+fi
+
+TASKS="$RELEASE-bare $RELEASE-ovm $RELEASE-vmware"
+
+for i in $TASKS; do
+	if ! [ -d $i ]; then
+		printf "$i does not exist!\n"
+		exit 1;
+	fi
+done
+
+for i in $TASKS; do
+	DFILE=$i.avg
+	rm -f $DFILE
+	count=0
+	for j in $i/tcp-$2.dat; do
+		cp $j $DFILE
+		sed -i 's/Mbs//g' $DFILE
+	done
+done
+
+TIME=`date +%Y%m%dT%H%M%S`
+TITLE1=bare
+TITLE2=ovm
+TITLE3=vmware
+OUTPUT=throughput-${RELEASE}-${PKTSZ}_$TIME.png
+DFILE1=$1-$TITLE1.avg
+DFILE2=$1-$TITLE2.avg
+DFILE3=$1-$TITLE3.avg
+
+gnuplot << EOF
+
+set title "network-perf - $RELEASE Throughput, Packet Size = $PKTSZ"
+set xlabel "Connection"
+set ylabel "Throughput (Mbps)"
+#set y2label "dev"
+#set y2tics
+#set ytics nomirror
+
+set key tmargin
+set tics nomirror
+#set border 3
+set style data linespoints
+set grid
+#set terminal png
+set terminal pngcairo notransparent font "Helvetica, 12" 
+
+set xtics("1" 0, "10" 1, "100" 2, "500" 3, "1000" 4, "5000" 5)
+set output "$OUTPUT"
+
+#plot "$DFILE1" t "$TITLE1" pt 13
+plot "$DFILE1" t "$TITLE1" pt 13, "$DFILE2" t "$TITLE2" pt 7, "$DFILE3" t "$TITLE3" pt 2
+
+EOF
